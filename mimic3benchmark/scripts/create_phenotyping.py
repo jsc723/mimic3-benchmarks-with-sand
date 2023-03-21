@@ -100,7 +100,7 @@ def main():
     args, _ = parser.parse_known_args()
 
     with open(args.phenotype_definitions) as definitions_file:
-        definitions = yaml.load(definitions_file)
+        definitions = yaml.load(definitions_file, Loader = yaml.SafeLoader)
 
     code_to_group = {}
     for group in definitions:

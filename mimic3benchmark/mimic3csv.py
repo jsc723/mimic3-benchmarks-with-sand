@@ -76,8 +76,10 @@ def merge_on_subject_admission(table1, table2):
 
 
 def add_age_to_icustays(stays):
-    stays['AGE'] = stays.INTIME.subtract(stays.DOB).apply(lambda s: s / np.timedelta64(1, 's')) / 60./60/24/365
-    stays.ix[stays.AGE < 0, 'AGE'] = 90
+    stays.INTIME = pd.to_datetime(stays.INTIME).dt.date
+    stays.DOB = pd.to_datetime(stays.DOB).dt.date
+    stays['AGE'] = stays.apply(lambda e:(e.INTIME - e.DOB).days/365, axis = 1)
+    stays.loc[stays.AGE < 0, 'AGE'] = 90
     return stays
 
 
@@ -176,7 +178,7 @@ def read_events_table_and_break_up_by_subject(mimic3_path, table, output_path,
 
     for row, row_no, _ in tqdm(read_events_table_by_row(mimic3_path, table), total=nb_rows,
                                                         desc='Processing {} table'.format(table)):
-
+                                                        
         if (subjects_to_keep is not None) and (row['SUBJECT_ID'] not in subjects_to_keep):
             continue
         if (items_to_keep is not None) and (row['ITEMID'] not in items_to_keep):
