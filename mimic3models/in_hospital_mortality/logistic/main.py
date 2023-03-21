@@ -5,7 +5,8 @@ from mimic3benchmark.readers import InHospitalMortalityReader
 from mimic3models import common_utils
 from mimic3models.metrics import print_metrics_binary
 from mimic3models.in_hospital_mortality.utils import save_results
-from sklearn.preprocessing import Imputer, StandardScaler
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 
 import os
@@ -59,7 +60,7 @@ def main():
     print('  test data shape = {}'.format(test_X.shape))
 
     print('Imputing missing values ...')
-    imputer = Imputer(missing_values=np.nan, strategy='mean', axis=0, verbose=0, copy=True)
+    imputer = SimpleImputer(missing_values=np.nan, strategy='mean', verbose=0, copy=True)
     imputer.fit(train_X)
     train_X = np.array(imputer.transform(train_X), dtype=np.float32)
     val_X = np.array(imputer.transform(val_X), dtype=np.float32)

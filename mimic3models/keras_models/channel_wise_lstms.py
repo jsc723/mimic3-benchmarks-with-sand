@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 from keras.models import Model
 from keras.layers import Input, Dense, LSTM, Masking, Dropout
-from keras.layers.wrappers import Bidirectional, TimeDistributed
+from keras.layers import Bidirectional, TimeDistributed
 from mimic3models.keras_utils import Slice, LastTimestep
 from keras.layers.merge import Concatenate
 from mimic3models.keras_utils import ExtendMask

@@ -7,6 +7,8 @@ import os
 import imp
 import re
 
+import tensorflow as tf
+
 from mimic3models.in_hospital_mortality import utils
 from mimic3benchmark.readers import InHospitalMortalityReader
 
@@ -26,6 +28,7 @@ parser.add_argument('--output_dir', type=str, help='Directory relative which all
                     default='.')
 args = parser.parse_args()
 print(args)
+print('--------------------')
 
 if args.small_part:
     args.save_every = 2**30
@@ -79,6 +82,7 @@ print("==> compiling the model")
 optimizer_config = {'class_name': args.optimizer,
                     'config': {'lr': args.lr,
                                'beta_1': args.beta_1}}
+print(optimizer_config)
 
 # NOTE: one can use binary_crossentropy even for (B, T, C) shape.
 #       It will calculate binary_crossentropies for each class
@@ -90,7 +94,8 @@ else:
     loss = 'binary_crossentropy'
     loss_weights = None
 
-model.compile(optimizer=optimizer_config,
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=args.lr,
+                    beta_1=args.beta_1),
               loss=loss,
               loss_weights=loss_weights)
 model.summary()
@@ -106,6 +111,7 @@ if args.load_state != "":
 train_raw = utils.load_data(train_reader, discretizer, normalizer, args.small_part)
 val_raw = utils.load_data(val_reader, discretizer, normalizer, args.small_part)
 
+
 if target_repl:
     T = train_raw[0][0].shape[0]
 
@@ -119,6 +125,10 @@ if target_repl:
 
     train_raw = extend_labels(train_raw)
     val_raw = extend_labels(val_raw)
+
+train_x, train_y = train_raw[0], np.array(train_raw[1])
+val_x, val_y = val_raw[0], np.array(val_raw[1])
+val_data = (val_x, val_y)
 
 if args.mode == 'train':
 
@@ -143,9 +153,9 @@ if args.mode == 'train':
                            append=True, separator=';')
 
     print("==> training")
-    model.fit(x=train_raw[0],
-              y=train_raw[1],
-              validation_data=val_raw,
+    model.fit(x=train_x,
+              y=train_y,
+              validation_data=val_data,
               epochs=n_trained_chunks + args.epochs,
               initial_epoch=n_trained_chunks,
               callbacks=[metrics_callback, saver, csv_logger],
