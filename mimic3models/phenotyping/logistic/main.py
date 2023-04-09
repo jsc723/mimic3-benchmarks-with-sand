@@ -38,6 +38,8 @@ def main():
     args = parser.parse_args()
     print(args)
 
+    solver = 'liblinear'
+
     if args.grid_search:
         penalties = ['l2', 'l2', 'l2', 'l2', 'l2', 'l2', 'l1', 'l1', 'l1', 'l1', 'l1']
         coefs = [1.0, 0.1, 0.01, 0.001, 0.0001, 0.00001, 1.0, 0.1, 0.01, 0.001, 0.0001]
@@ -97,7 +99,7 @@ def main():
         for task_id in range(n_tasks):
             print('Starting task {}'.format(task_id))
 
-            logreg = LogisticRegression(penalty=penalty, C=C, random_state=42)
+            logreg = LogisticRegression(penalty=penalty, solver=solver, C=C, random_state=42)
             logreg.fit(train_X, train_y[:, task_id])
 
             train_preds = logreg.predict_proba(train_X)

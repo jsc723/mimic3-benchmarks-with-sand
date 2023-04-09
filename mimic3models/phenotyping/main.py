@@ -17,6 +17,8 @@ from mimic3models import common_utils
 
 from keras.callbacks import ModelCheckpoint, CSVLogger
 
+import tensorflow as tf
+
 parser = argparse.ArgumentParser()
 common_utils.add_common_arguments(parser)
 parser.add_argument('--target_repl_coef', type=float, default=0.0)
@@ -89,7 +91,8 @@ else:
     loss = 'binary_crossentropy'
     loss_weights = None
 
-model.compile(optimizer=optimizer_config,
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=args.lr,
+                    beta_1=args.beta_1),
               loss=loss,
               loss_weights=loss_weights)
 model.summary()
