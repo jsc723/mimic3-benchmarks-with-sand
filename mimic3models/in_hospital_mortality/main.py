@@ -103,7 +103,8 @@ model.summary()
 # Load model weights
 n_trained_chunks = 0
 if args.load_state != "":
-    model.load_weights(args.load_state)
+    #model.load_weights(args.load_state)
+    model = tf.keras.models.load_model(args.load_state)
     n_trained_chunks = int(re.match(".*epoch([0-9]+).*", args.load_state).group(1))
 
 
