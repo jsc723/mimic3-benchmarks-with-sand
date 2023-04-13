@@ -64,7 +64,9 @@ python -um mimic3models.in_hospital_mortality.SAnD.main --use_cache true --load_
 Note that `--use_cache true` can be used after the first time you train to reduce the time for loading input data. 
 
 ## Evaluate the SAnD model
-TODO
+```
+python -um mimic3models.in_hospital_mortality.SAnD.main --mode test --load_checkpoint {epoch_number}
+```
 
 ## Citation
 - [MIMIC-III, a freely accessible critical care database](https://www.nature.com/articles/sdata201635)
