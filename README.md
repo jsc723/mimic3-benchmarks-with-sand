@@ -68,8 +68,10 @@ Note that `--use_cache true` can be used after the first time you train to reduc
 python -um mimic3models.in_hospital_mortality.SAnD.main --mode test --load_checkpoint {epoch_number}
 ```
 
-## Citation
-- [MIMIC-III, a freely accessible critical care database](https://www.nature.com/articles/sdata201635)
+## Citations
 - [Attend and Diagnose: Clinical TimeSeries Analysis Using Attention Models](https://arxiv.org/abs/1711.03905)
+- [MIMIC-III, a freely accessible critical care database](https://www.nature.com/articles/sdata201635)
+- [YerevaNN/mimic3-benchmarks](https://github.com/YerevaNN/mimic3-benchmarks)
+- [khirotaka/SAnD](https://github.com/khirotaka/SAnD)
 
 
