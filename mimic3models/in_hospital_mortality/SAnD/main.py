@@ -8,6 +8,8 @@ import imp
 import re
 import tqdm
 import sys
+import psutil
+import time
 
 from mimic3models.in_hospital_mortality import utils
 from mimic3benchmark.readers import InHospitalMortalityReader
@@ -24,9 +26,21 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, average_precision_score
 
 from mimic3models.torch_models.SAnD.core.model import SAnD
+
+pid = os.getpid()
+process = psutil.Process(pid)
+prev_memory_usage = process.memory_info().rss / 1e6
+def get_memory_usage():
+    global prev_memory_usage
+    prev_memory_usage = process.memory_info().rss / 1e6
+    return prev_memory_usage
+def get_memory_usage_diff():
+    prev = prev_memory_usage
+    return get_memory_usage() - prev
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -114,7 +128,32 @@ def count_parameters(model):
 def main():
     # Build model
 
-    model = None #TODO
+    in_feature = 76
+    seq_len = 48
+    n_heads = 8
+    factor = 12 #12
+    num_class = 2
+    num_layers = 4 #4
+    d_model = 16 #256
+    dropout_rate = 0.3
+    BATCH_SIZE = 256
+
+    model = SAnD(in_feature, seq_len, n_heads, factor, num_class, num_layers, d_model, dropout_rate)
+    model = model.to(device)
+    print(model)
+    print("number of parameters: ", count_parameters(model))
+
+    global checkpoint_prefix
+    checkpoint_prefix = f'cp_n{num_layers}_m{factor}_d{d_model}'
+
+    start_epoch = 1
+    if args.load_checkpoint:
+        start_epoch = int(args.load_checkpoint) + 1
+        checkpoint_file = os.path.join(checkpoint_path, f'{checkpoint_prefix}_{start_epoch-1}.pt')
+        state_dict = torch.load(checkpoint_file)
+        model.load_state_dict(state_dict)
+    num_of_epoch = 30
+    save_freq = 5
 
     if args.mode == 'train':
         train_x, train_y, val_x, val_y = get_data()
@@ -127,52 +166,17 @@ def main():
         train_ds = TensorDataset(train_x, train_y)
         val_ds = TensorDataset(val_x, val_y)
 
-        BATCH_SIZE = 256
-
         train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE)
         val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE)
 
-        in_feature = 76
-        seq_len = 48
-        n_heads = 8
-        factor = 12 #12
-        num_class = 2
-        num_layers = 4 #4
-        d_model = 256 #256
-        dropout_rate = 0.3
-
-        global checkpoint_prefix
-        checkpoint_prefix = f'cp_n{num_layers}_m{factor}_d{d_model}'
-
-        model = SAnD(in_feature, seq_len, n_heads, factor, num_class, num_layers, d_model, dropout_rate)
-        model = model.to(device)
-        print(model)
-        print("number of parameters: ", count_parameters(model))
-
-
         criterion = nn.CrossEntropyLoss()
-        optimizer_config={"lr": 0.0005, "betas": (0.9, 0.999)}
+        optimizer_config={"lr": 0.0005, "betas": (0.9, 0.98)}
         optimizer = optim.Adam(model.parameters(), **optimizer_config)
-
-        
-        start_epoch = 1
-        if args.load_checkpoint:
-            start_epoch = int(args.load_checkpoint) + 1
-            checkpoint_file = os.path.join(checkpoint_path, f'{checkpoint_prefix}_{start_epoch-1}.pt')
-            state_dict = torch.load(checkpoint_file)
-            model.load_state_dict(state_dict)
-        num_of_epoch = 10
-        save_freq = 10
 
         train(model, train_loader, val_loader, criterion, optimizer,
             start_epoch, num_of_epoch, checkpoint_path, save_freq)
 
     elif args.mode == 'test':
-        # ensure that the code uses test_reader
-        del train_reader
-        del val_reader
-        del train_raw
-        del val_raw
 
         test_reader = InHospitalMortalityReader(dataset_dir=os.path.join(args.data, 'test'),
                                                 listfile=os.path.join(args.data, 'test_listfile.csv'),
@@ -180,9 +184,20 @@ def main():
         ret = utils.load_data(test_reader, discretizer, normalizer, args.small_part,
                                 return_names=True)
 
-        data = ret["data"][0]
-        labels = ret["data"][1]
-        names = ret["names"]
+        test_x = ret["data"][0]
+        test_y = np.array(ret["data"][1])
+
+        test_x = torch.from_numpy(test_x).type(torch.FloatTensor)
+        test_y = torch.from_numpy(test_y).type(torch.LongTensor)
+
+        test_ds = TensorDataset(test_x, test_y)
+
+        test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE)
+
+        test(model, test_loader)
+
+
+
 
 
 def train(model, train_loader, val_loader, criterion, optimizer,
@@ -192,6 +207,9 @@ def train(model, train_loader, val_loader, criterion, optimizer,
     len_of_val_dataset = len(val_loader.dataset)
     max_epoch = start_epoch + epochs - 1
     prev_auroc = 0.0
+
+    # Start the timer
+    start_time = time.time()
 
     for epoch in range(start_epoch, max_epoch + 1):
         
@@ -224,6 +242,8 @@ def train(model, train_loader, val_loader, criterion, optimizer,
             total_loss += loss.cpu().item()
 
         print(f'epoch: {epoch}, loss: {total_loss}, acc: {float(correct / total)}')
+        print(f'memory usage: {get_memory_usage()} MB')
+        print(f"Time used: {time.time() - start_time:.2f} seconds")
 
         # Validation
         with torch.no_grad():
@@ -251,8 +271,9 @@ def train(model, train_loader, val_loader, criterion, optimizer,
             y_scores = torch.cat(y_scores)
 
             auroc = roc_auc_score(y_true.numpy(), y_scores.numpy())
+            auprc = average_precision_score(y_true.numpy(), y_scores.numpy())
 
-            print(f'epoch: {epoch}, val acc: {float(val_correct / val_total)}, auroc: {auroc}')
+            print(f'epoch: {epoch}, val acc: {float(val_correct / val_total)}, auroc: {auroc}, auprc: {auprc}')
 
         pbar.close()
 
@@ -261,5 +282,35 @@ def train(model, train_loader, val_loader, criterion, optimizer,
             torch.save(model.state_dict(), path_to_save)
             print(f'saved to {path_to_save}')
         prev_auroc = auroc
+    print(f"Total time used: {time.time() - start_time:.2f} seconds")
 
+
+def test(model, test_loader):
+    with torch.no_grad():
+        test_correct = 0.0
+        test_total = 0.0
+
+        y_true = []
+        y_scores = []
+
+        model.eval()
+        for x_val, y_val in test_loader:
+            test_total += y_val.shape[0]
+            x_val = x_val.to(device) if isinstance(x_val, torch.Tensor) else [i_val.to(device) for i_val in x_val]
+            y_val = y_val.to(device)
+
+            test_output = model(x_val)
+            _, test_pred = torch.max(test_output, 1)
+            test_correct += (test_pred == y_val).sum().float().cpu().item()
+
+            y_true.append(y_val)
+            test_score = torch.softmax(test_output, dim=1)[:, 1] # get score of the positive class
+            y_scores.append(test_score)
+        y_true = torch.cat(y_true)
+        y_scores = torch.cat(y_scores)
+
+        auroc = roc_auc_score(y_true.numpy(), y_scores.numpy())
+        auprc = average_precision_score(y_true.numpy(), y_scores.numpy())
+
+        print(f'test acc: {float(test_correct / test_total)}, auroc: {auroc}, auprc: {auprc}')
 main()
