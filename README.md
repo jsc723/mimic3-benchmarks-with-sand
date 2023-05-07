@@ -1,6 +1,6 @@
 # CS598 Deep Learning for Healthcare in Spring 2023 Final Project
 ## Introduction
-The objective of this project is to reproduce some main results in the paper [Attend and Diagnose: Clinical TimeSeries Analysis Using Attention Models](https://arxiv.org/abs/1711.03905). This paper introduces a SAnD model for representing clinical time series data and use it for prediction tasks. The code for this project is develop on top of [YerevaNN/mimic3-benchmarks](https://github.com/YerevaNN/mimic3-benchmarks). The code that I implemented myself for trainig and evaluating the SAnD model can be found in the `mimic3models.in_hospital_mortality.SAnD` module. The implementation of the SAnD model itself is reused from [this repository](https://github.com/khirotaka/SAnD) and can be found at `mimic3models.torch_models.SAnD`.
+The objective of this project is to reproduce some main results in the paper [Attend and Diagnose: Clinical TimeSeries Analysis Using Attention Models](https://arxiv.org/abs/1711.03905). This paper introduces a SAnD model for representing clinical time series data and use it for prediction tasks. The code for this project is develop on top of [YerevaNN/mimic3-benchmarks](https://github.com/YerevaNN/mimic3-benchmarks). The code that I implemented myself for trainig and evaluating the SAnD model can be found in the `mimic3models.in_hospital_mortality.SAnD` module. The implementation of the SAnD model itself is reused from [khirotaka/SAnD](https://github.com/khirotaka/SAnD) and can be found at `mimic3models.torch_models.SAnD`.
 
 ## Dependencies
 You will need to install the following packages before running the code
@@ -62,7 +62,7 @@ To load from a checkpoint and continue training, use
 python -um mimic3models.in_hospital_mortality.SAnD.main --use_cache true --load_checkpoint {epoch_number}
 ```
 Note that `--use_cache true` can be used after the first time you train to reduce the time for loading input data. 
-If you want to change some hyperparameters such as num of layers and hidden dimension size, you have to actually modify the code in mimic3models.in_hospital_mortality.SAnD.main.
+If you want to change some hyperparameters such as num of layers or hidden dimension size, you have to actually modify the code in `mimic3models.in_hospital_mortality.SAnD.main`.
 
 ## Evaluate the SAnD model
 ```
