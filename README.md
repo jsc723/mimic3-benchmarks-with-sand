@@ -62,6 +62,7 @@ To load from a checkpoint and continue training, use
 python -um mimic3models.in_hospital_mortality.SAnD.main --use_cache true --load_checkpoint {epoch_number}
 ```
 Note that `--use_cache true` can be used after the first time you train to reduce the time for loading input data. 
+If you want to change some hyperparameters such as num of layers and hidden dimension size, you have to actually modify the code in mimic3models.in_hospital_mortality.SAnD.main.
 
 ## Evaluate the SAnD model
 ```
