@@ -69,6 +69,26 @@ If you want to change some hyperparameters such as num of layers or hidden dimen
 python -um mimic3models.in_hospital_mortality.SAnD.main --mode test --load_checkpoint {epoch_number}
 ```
 
+## Main Results
+
+The following table shows the performance of baseline LSTM and SAnD of the In Hospital Mortality Task
+| Metric | LSTM |SAnD |
+| -------- | -------- | -------- |
+| Accuracy   | 0.889   | 0.888   |
+| AUROC   | 0.831   | 0.834   |
+| AUPRC   | 0.425   | 0.409   |
+
+#### Command used to train the baseline LSTM model (train for 10 epochs)
+```
+python -um mimic3models.in_hospital_mortality.main --network mimic3models/keras_models/lstm.py --dim 16 --timestep 1.0 --depth 2 --dropout 0.3 --mode train --batch_size 8 --output_dir mimic3models/in_hospital_mortality
+```
+
+#### Command used to train the best SAnD model (train for 19 epochs)
+```
+//set N=4, M=12, d=32
+python -um mimic3models.in_hospital_mortality.SAnD.main 
+```
+
 ## Citations
 - [Attend and Diagnose: Clinical TimeSeries Analysis Using Attention Models](https://arxiv.org/abs/1711.03905)
 - [MIMIC-III, a freely accessible critical care database](https://www.nature.com/articles/sdata201635)
